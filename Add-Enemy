@@ -1,1 +1,97 @@
 
+Here's how to add a new **regular** (non-boss) enemy — I'll call it **Skeleton Warrior**, type `5` (using `5` so it doesn't collide with the boss types `3` and `4` you already added).
+
+## 1. In `Enemy.java` — add the new type in `setupMonster()`
+
+**Find this:**
+```java
+        } else {
+            this.name = "Frost Wyrm, Herald of Winter (BOSS)";
+            this.maxHp = 320; this.hp = 320;
+            this.atk = 40; this.def = 22;
+            this.critChance = 0.20; this.dodgeChance = 0.08;
+            this.specialSkill = "Absolute Zero Breath";
+        }
+    }
+```
+
+**Replace with:**
+```java
+        } else if (type == 4) {
+            this.name = "Frost Wyrm, Herald of Winter (BOSS)";
+            this.maxHp = 320; this.hp = 320;
+            this.atk = 40; this.def = 22;
+            this.critChance = 0.20; this.dodgeChance = 0.08;
+            this.specialSkill = "Absolute Zero Breath";
+        } else {
+            this.name = "Skeleton Warrior";
+            this.maxHp = 55; this.hp = 55;
+            this.atk = 13; this.def = 4;
+            this.critChance = 0.08; this.dodgeChance = 0.03;
+            this.specialSkill = "Bone Rattle Slash";
+        }
+    }
+```
+
+## 2. In `GameEngine.java` — include it in the random wild-encounter pool, inside `battleMode()`
+
+**Find this:**
+```java
+    private void battleMode(int forcedType) {
+        int enemyType = (forcedType == -1) ? random.nextInt(3) : forcedType;
+        Enemy enemy = new Enemy(enemyType);
+```
+
+**Replace with:**
+```java
+    private void battleMode(int forcedType) {
+        int[] wildTypes = {0, 1, 2, 5}; // regular (non-boss) enemy types
+        int enemyType = (forcedType == -1) ? wildTypes[random.nextInt(wildTypes.length)] : forcedType;
+        Enemy enemy = new Enemy(enemyType);
+```
+
+## 3. In `GameEngine.java` — add a counter field near the others
+
+```java
+    private int bossDefeated = 0;
+    private int frostWyrmDefeated = 0;
+    private int skeletonDefeated = 0;   // <-- add this line
+```
+
+## 4. In `GameEngine.java` — reward EXP for it, inside `handleCombatResult()`
+
+**Find this:**
+```java
+            } else if (enemy.getName().contains("Frost Wyrm")) {
+                frostWyrmDefeated++;
+                expReward = 260;
+            } else {
+```
+
+**Replace with:**
+```java
+            } else if (enemy.getName().equals("Skeleton Warrior")) {
+                skeletonDefeated++;
+                expReward = 22;
+            } else if (enemy.getName().contains("Frost Wyrm")) {
+                frostWyrmDefeated++;
+                expReward = 260;
+            } else {
+```
+
+## 5. In `GameEngine.java` — show it on the stats screen, inside `displayStats()`
+
+**Find this:**
+```java
+        System.out.println(" Dragons Defeated : " + dragonDefeated);
+        System.out.println(" Dragon Bosses Defeated : " + bossDefeated);
+```
+
+**Replace with:**
+```java
+        System.out.println(" Dragons Defeated : " + dragonDefeated);
+        System.out.println(" Skeletons Defeated : " + skeletonDefeated);
+        System.out.println(" Dragon Bosses Defeated : " + bossDefeated);
+```
+
+That's it — Skeleton Warrior will now spawn in normal random encounters alongside Goblin, Orc, and Baby Dragon, while the two bosses (types `3` and `4`) remain reserved for their special lair locations.
