@@ -1,1 +1,135 @@
+Here are the exact snippets to add — organized by which file/section you'd drop them into.
 
+## 1. In `Enemy.java` — inside `setupMonster()`, replace the boss `else` block
+
+**Find this:**
+```java
+        } else {
+            this.name = "Niki Minaj the Black Dragon (BOSS)"; 
+            this.maxHp = 250; this.hp = 250; 
+            this.atk = 35; this.def = 18; 
+            this.critChance = 0.15; this.dodgeChance = 0.05;
+            this.specialSkill = "My Anaconda Breath";
+        }
+    }
+```
+
+**Replace with:**
+```java
+        } else if (type == 3) {
+            this.name = "Niki Minaj the Black Dragon (BOSS)"; 
+            this.maxHp = 250; this.hp = 250; 
+            this.atk = 35; this.def = 18; 
+            this.critChance = 0.15; this.dodgeChance = 0.05;
+            this.specialSkill = "My Anaconda Breath";
+        } else {
+            this.name = "Frost Wyrm, Herald of Winter (BOSS)";
+            this.maxHp = 320; this.hp = 320;
+            this.atk = 40; this.def = 22;
+            this.critChance = 0.20; this.dodgeChance = 0.08;
+            this.specialSkill = "Absolute Zero Breath";
+        }
+    }
+```
+
+## 2. In `GameEngine.java` — new field near the other counters
+
+```java
+    private int bossDefeated = 0;
+    private int frostWyrmDefeated = 0;   // <-- add this line
+```
+
+## 3. In `GameEngine.java` — inside `checkSpecialLocations()`, after the Dragon Boss block
+
+**Find this:**
+```java
+        if ((posX == 3 && posY == 3) || (posX == -3 && posY == -3)) {
+            System.out.println("\n[BOSS ZONE] The earth rumbles as volcanic smoke fills the room...");
+            System.out.println("You have entered the Dragon's Lair!");
+            battleMode(3); // Passes integer 3 to spawn the real Dragon Boss!
+            return;
+        }
+```
+
+**Add right after it:**
+```java
+        // Frost Wyrm Boss Area
+        if ((posX == 5 && posY == 5) || (posX == -5 && posY == -5)) {
+            System.out.println("\n[BOSS ZONE] A biting, unnatural chill fills the air as ice crawls up the walls...");
+            System.out.println("You have entered the Frozen Cavern!");
+            battleMode(4); // Passes integer 4 to spawn the Frost Wyrm Boss!
+            return;
+        }
+```
+
+## 4. In `GameEngine.java` — inside `battleMode()`, two small tweaks
+
+**Change:**
+```java
+if (forcedType == 3) {
+    System.out.println("\nWARNING: BOSS BATTLE ENGAGED!");
+    System.out.println("Prepare yourself, " + player.getName() + "! You face " + enemy.getName() + "!");
+} else {
+```
+**to:**
+```java
+if (forcedType >= 3) {
+    System.out.println("\nWARNING: BOSS BATTLE ENGAGED!");
+    System.out.println("Prepare yourself, " + player.getName() + "! You face " + enemy.getName() + "!");
+} else {
+```
+
+**Change:**
+```java
+if (forcedType == 3) {
+    System.out.println("Bading yarn? You cannot run away from a Boss Battle! Fight or die!");
+```
+**to:**
+```java
+if (forcedType >= 3) {
+    System.out.println("Bading yarn? You cannot run away from a Boss Battle! Fight or die!");
+```
+
+## 5. In `GameEngine.java` — inside `handleCombatResult()`
+
+**Find this:**
+```java
+            } else if (enemy.getName().equals("Baby Dragon")) {
+                dragonDefeated++;
+                expReward = 50;
+            } else {
+                bossDefeated++;
+                expReward = 200; // Massive yield for executing the true Dragon Boss
+            }
+```
+
+**Replace with:**
+```java
+            } else if (enemy.getName().equals("Baby Dragon")) {
+                dragonDefeated++;
+                expReward = 50;
+            } else if (enemy.getName().contains("Frost Wyrm")) {
+                frostWyrmDefeated++;
+                expReward = 260;
+            } else {
+                bossDefeated++;
+                expReward = 200; // Massive yield for executing the true Dragon Boss
+            }
+```
+
+## 6. In `GameEngine.java` — inside `displayStats()`
+
+**Find this:**
+```java
+        System.out.println(" Bosses Defeated  : " + bossDefeated);
+        System.out.println(" Total Defeated   : " + totalDefeated);
+```
+
+**Replace with:**
+```java
+        System.out.println(" Dragon Bosses Defeated : " + bossDefeated);
+        System.out.println(" Frost Wyrms Defeated   : " + frostWyrmDefeated);
+        System.out.println(" Total Defeated   : " + totalDefeated);
+```
+
+That's every change needed — I tested this exact logic in the combined file earlier and it compiled and ran without errors.
