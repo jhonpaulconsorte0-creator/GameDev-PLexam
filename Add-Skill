@@ -1,1 +1,149 @@
+Here's how to add a 4th combat option — a **second skill** (separate from the ultimate) for every class. I'll use generic names so you can reflavor per class.
 
+## 1. In `Player.java` — add fields for the new skill
+
+**Find this:**
+```java
+    private String playerClass;
+    private String skillName, ultName;
+    private int skillCost, ultCost;
+```
+
+**Replace with:**
+```java
+    private String playerClass;
+    private String skillName, skill2Name, ultName;
+    private int skillCost, skill2Cost, ultCost;
+```
+
+## 2. In `Player.java` — give each class its second skill, inside `setupClass()`
+
+**Find this:**
+```java
+        if (choice == 1) {
+            this.playerClass = "Warrior";
+            this.maxHp = 120; this.hp = 120; this.maxMp = 30; this.mp = 30; this.atk = 15; this.def = 10;
+            this.critChance = 0.10; this.dodgeChance = 0.05;
+            this.skillName = "Shield Bash"; this.skillCost = 10;
+            this.ultName = "Whirlwind"; this.ultCost = 25;
+        } else if (choice == 2) {
+            this.playerClass = "Magician";
+            this.maxHp = 80; this.hp = 80; this.maxMp = 80; this.mp = 80; this.atk = 22; this.def = 4;
+            this.critChance = 0.05; this.dodgeChance = 0.05;
+            this.skillName = "Fireball"; this.skillCost = 15;
+            this.ultName = "Meteor Strike"; this.ultCost = 40;
+        } else {
+            this.playerClass = "Archer";
+            this.maxHp = 95; this.hp = 95; this.maxMp = 45; this.mp = 45; this.atk = 18; this.def = 6;
+            this.critChance = 0.25; this.dodgeChance = 0.20;
+            this.skillName = "Steady Shot"; this.skillCost = 12;
+            this.ultName = "Arrow Storm"; this.ultCost = 30;
+        }
+    }
+```
+
+**Replace with:**
+```java
+        if (choice == 1) {
+            this.playerClass = "Warrior";
+            this.maxHp = 120; this.hp = 120; this.maxMp = 30; this.mp = 30; this.atk = 15; this.def = 10;
+            this.critChance = 0.10; this.dodgeChance = 0.05;
+            this.skillName = "Shield Bash"; this.skillCost = 10;
+            this.skill2Name = "Rallying Cry"; this.skill2Cost = 15;
+            this.ultName = "Whirlwind"; this.ultCost = 25;
+        } else if (choice == 2) {
+            this.playerClass = "Magician";
+            this.maxHp = 80; this.hp = 80; this.maxMp = 80; this.mp = 80; this.atk = 22; this.def = 4;
+            this.critChance = 0.05; this.dodgeChance = 0.05;
+            this.skillName = "Fireball"; this.skillCost = 15;
+            this.skill2Name = "Ice Lance"; this.skill2Cost = 18;
+            this.ultName = "Meteor Strike"; this.ultCost = 40;
+        } else {
+            this.playerClass = "Archer";
+            this.maxHp = 95; this.hp = 95; this.maxMp = 45; this.mp = 45; this.atk = 18; this.def = 6;
+            this.critChance = 0.25; this.dodgeChance = 0.20;
+            this.skillName = "Steady Shot"; this.skillCost = 12;
+            this.skill2Name = "Piercing Arrow"; this.skill2Cost = 16;
+            this.ultName = "Arrow Storm"; this.ultCost = 30;
+        }
+    }
+```
+*(If you added the Cleric class from before, add a `this.skill2Name = "..."; this.skill2Cost = ...;` line in that branch too.)*
+
+## 3. In `Player.java` — handle the new choice in `executeAttack()`
+
+**Find this:**
+```java
+        } else if (choice == 3) {
+            if (mp >= ultCost) {
+                mp -= ultCost;
+                System.out.println(name + " unleashes Ultimate: " + ultName + "!");
+                damage = calculateDamageValue((int)(atk * 2.5), target.getDef(), critChance + 0.15);
+            } else {
+                System.out.println("Not enough MP! The ultimate fizzled out.");
+            }
+        }
+        return damage;
+    }
+```
+
+**Replace with:**
+```java
+        } else if (choice == 3) {
+            if (mp >= skill2Cost) {
+                mp -= skill2Cost;
+                System.out.println(name + " uses " + skill2Name + "!");
+                damage = calculateDamageValue((int)(atk * 1.9), target.getDef(), critChance + 0.05);
+            } else {
+                System.out.println("Not enough MP! Desperation strike hits poorly.");
+                damage = calculateDamageValue((int)(atk * 0.5), target.getDef(), 0);
+            }
+        } else if (choice == 4) {
+            if (mp >= ultCost) {
+                mp -= ultCost;
+                System.out.println(name + " unleashes Ultimate: " + ultName + "!");
+                damage = calculateDamageValue((int)(atk * 2.5), target.getDef(), critChance + 0.15);
+            } else {
+                System.out.println("Not enough MP! The ultimate fizzled out.");
+            }
+        }
+        return damage;
+    }
+```
+*(Note: the ultimate moved from `choice == 3` to `choice == 4`.)*
+
+## 4. In `Player.java` — add getters near the others
+
+**Find this:**
+```java
+    public String getSkillName() { return skillName; }
+    public String getUltName() { return ultName; }
+    public int getSkillCost() { return skillCost; }
+    public int getUltCost() { return ultCost; }
+```
+
+**Replace with:**
+```java
+    public String getSkillName() { return skillName; }
+    public String getSkill2Name() { return skill2Name; }
+    public String getUltName() { return ultName; }
+    public int getSkillCost() { return skillCost; }
+    public int getSkill2Cost() { return skill2Cost; }
+    public int getUltCost() { return ultCost; }
+```
+
+## 5. In `GameEngine.java` — update the battle menu, inside `battleMode()`
+
+**Find this:**
+```java
+                System.out.println("1. Basic Attack\n2. " + player.getSkillName() + " (" + player.getSkillCost() + " MP)\n3. " + player.getUltName() + " (" + player.getUltCost() + " MP)");
+                int attackChoice = getValidInput(1, 3);
+```
+
+**Replace with:**
+```java
+                System.out.println("1. Basic Attack\n2. " + player.getSkillName() + " (" + player.getSkillCost() + " MP)\n3. " + player.getSkill2Name() + " (" + player.getSkill2Cost() + " MP)\n4. " + player.getUltName() + " (" + player.getUltCost() + " MP)");
+                int attackChoice = getValidInput(1, 4);
+```
+
+That covers it — combat now offers Basic Attack, Skill, a second Skill, and Ultimate.
