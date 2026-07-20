@@ -1,1 +1,102 @@
+Here are the exact snippets to add a 4th hero class — I'll use **Cleric** (a support-style healer/caster) as the example, but you can rename/reflavor it however you like.
 
+## 1. In `GameEngine.java` — update the class menu and input range
+
+**Find this (inside `setupPlayer()`):**
+```java
+        System.out.println("\nSelect Your Class:");
+        System.out.println("1. Warrior\n2. Magician\n3. Archer");
+        int choice = getValidInput(1, 3);
+```
+
+**Replace with:**
+```java
+        System.out.println("\nSelect Your Class:");
+        System.out.println("1. Warrior\n2. Magician\n3. Archer\n4. Cleric");
+        int choice = getValidInput(1, 4);
+```
+
+## 2. In `Player.java` — add the new class stats in `setupClass()`
+
+**Find this:**
+```java
+        } else {
+            this.playerClass = "Archer";
+            this.maxHp = 95; this.hp = 95; this.maxMp = 45; this.mp = 45; this.atk = 18; this.def = 6;
+            this.critChance = 0.25; this.dodgeChance = 0.20;
+            this.skillName = "Steady Shot"; this.skillCost = 12;
+            this.ultName = "Arrow Storm"; this.ultCost = 30;
+        }
+    }
+```
+
+**Replace with:**
+```java
+        } else if (choice == 3) {
+            this.playerClass = "Archer";
+            this.maxHp = 95; this.hp = 95; this.maxMp = 45; this.mp = 45; this.atk = 18; this.def = 6;
+            this.critChance = 0.25; this.dodgeChance = 0.20;
+            this.skillName = "Steady Shot"; this.skillCost = 12;
+            this.ultName = "Arrow Storm"; this.ultCost = 30;
+        } else {
+            this.playerClass = "Cleric";
+            this.maxHp = 90; this.hp = 90; this.maxMp = 70; this.mp = 70; this.atk = 14; this.def = 5;
+            this.critChance = 0.08; this.dodgeChance = 0.08;
+            this.skillName = "Holy Smite"; this.skillCost = 12;
+            this.ultName = "Divine Judgment"; this.ultCost = 35;
+        }
+    }
+```
+
+## 3. In `Player.java` — add stat growth on level up, inside `gainExp()`
+
+**Find this:**
+```java
+            } else { // Archer
+                this.maxHp += 18;
+                this.maxMp += 10;
+                this.atk += 5;
+                this.def += 2;
+            }
+```
+
+**Replace with:**
+```java
+            } else if (playerClass.equals("Archer")) {
+                this.maxHp += 18;
+                this.maxMp += 10;
+                this.atk += 5;
+                this.def += 2;
+            } else { // Cleric
+                this.maxHp += 16;
+                this.maxMp += 18;
+                this.atk += 3;
+                this.def += 2;
+            }
+```
+
+## 4. In `Player.java` — add an innate passive, inside `applyInnatePassive()`
+
+**Find this:**
+```java
+        } else if (playerClass.equals("Magician")) {
+            setMp(mp + 5);
+            System.out.println("[Innate Passive] Magician recovers 5 MP.");
+        }
+    }
+```
+
+**Replace with:**
+```java
+        } else if (playerClass.equals("Magician")) {
+            setMp(mp + 5);
+            System.out.println("[Innate Passive] Magician recovers 5 MP.");
+        } else if (playerClass.equals("Cleric")) {
+            setHp(hp + 3);
+            setMp(mp + 3);
+            System.out.println("[Innate Passive] Cleric channels divine grace, recovering 3 HP and 3 MP.");
+        }
+    }
+```
+
+That's it — no changes needed to `executeAttack()` since it already works generically off `skillName`/`ultName`/`skillCost`/`ultCost`, which you set in step 2.
