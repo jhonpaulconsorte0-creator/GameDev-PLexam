@@ -1,0 +1,490 @@
+import java.util.Random;
+import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        GameEngine game = new GameEngine();
+        game.start();
+    }
+}
+
+abstract class Entity {
+    protected String name;
+    protected int hp, maxHp, mp, maxMp, atk, def;
+    protected double critChance, dodgeChance;
+    protected Random random = new Random();
+
+    public Entity(String name, int maxHp, int maxMp, int atk, int def, double critChance, double dodgeChance) {
+        this.name = name;
+        this.maxHp = maxHp;
+        this.hp = maxHp;
+        this.maxMp = maxMp;
+        this.mp = maxMp;
+        this.atk = atk;
+        this.def = def;
+        this.critChance = critChance;
+        this.dodgeChance = dodgeChance;
+    }
+
+    public boolean tryDodge() {
+        return random.nextDouble() < dodgeChance;
+    }
+
+    public abstract int executeAttack(int choice, Entity target);
+
+
+    protected int calculateDamageValue(int baseAtk, int targetDef, double currentCritChance) {
+        boolean isCrit = random.nextDouble() < currentCritChance;
+        int rawDamage = Math.max(1, baseAtk - (targetDef / 2));
+
+        if (isCrit) {
+            rawDamage = (int) (rawDamage * 1.5);
+            System.out.print("[CRITICAL HIT] ");
+        }
+        return rawDamage;
+    }
+
+    // Getters and Setters
+    public String getName() { return name; }
+    public int getHp() { return hp; }
+    public void setHp(int hp) { this.hp = Math.max(0, Math.min(maxHp, hp)); }
+    public int getMaxHp() { return maxHp; }
+    public int getMp() { return mp; }
+    public void setMp(int mp) { this.mp = Math.max(0, Math.min(maxMp, mp)); }
+    public int getMaxMp() { return maxMp; }
+    public int getAtk() { return atk; }
+    public int getDef() { return def; }
+    public double getCritChance() { return critChance; }
+    public double getDodgeChance() { return dodgeChance; }
+}
+
+class Player extends Entity {
+    private String playerClass;
+    private String skillName, ultName;
+    private int skillCost, ultCost;
+
+    // --- LEVELING VARIABLES ---
+    private int level;
+    private int exp;
+    private int nextLevelExp;
+
+    public Player(String name, int classChoice) {
+        super(name, 100, 50, 15, 5, 0.10, 0.05);
+        this.level = 1;
+        this.exp = 0;
+        this.nextLevelExp = 50; // Initial EXP requirement to reach level 2
+        setupClass(classChoice);
+    }
+
+    private void setupClass(int choice) {
+        if (choice == 1) {
+            this.playerClass = "Warrior";
+            this.maxHp = 120; this.hp = 120; this.maxMp = 30; this.mp = 30; this.atk = 15; this.def = 10;
+            this.critChance = 0.10; this.dodgeChance = 0.05;
+            this.skillName = "Shield Bash"; this.skillCost = 10;
+            this.ultName = "Whirlwind"; this.ultCost = 25;
+        } else if (choice == 2) {
+            this.playerClass = "Magician";
+            this.maxHp = 80; this.hp = 80; this.maxMp = 80; this.mp = 80; this.atk = 22; this.def = 4;
+            this.critChance = 0.05; this.dodgeChance = 0.05;
+            this.skillName = "Fireball"; this.skillCost = 15;
+            this.ultName = "Meteor Strike"; this.ultCost = 40;
+        } else {
+            this.playerClass = "Archer";
+            this.maxHp = 95; this.hp = 95; this.maxMp = 45; this.mp = 45; this.atk = 18; this.def = 6;
+            this.critChance = 0.25; this.dodgeChance = 0.20;
+            this.skillName = "Steady Shot"; this.skillCost = 12;
+            this.ultName = "Arrow Storm"; this.ultCost = 30;
+        }
+    }
+
+    // --- GAIN EXP & LEVEL UP LOGIC ---
+    public void gainExp(int amount) {
+        this.exp += amount;
+        System.out.println("You gained " + amount + " EXP! (" + this.exp + "/" + this.nextLevelExp + ")");
+
+        while (this.exp >= this.nextLevelExp) {
+            this.exp -= this.nextLevelExp;
+            this.level++;
+            this.nextLevelExp = (int)(this.nextLevelExp * 1.5); // Scaled exponential EXP curve
+
+            // Stat Growth Factors based on Character Archetype
+            if (playerClass.equals("Warrior")) {
+                this.maxHp += 25;
+                this.maxMp += 5;
+                this.atk += 4;
+                this.def += 3;
+            } else if (playerClass.equals("Magician")) {
+                this.maxHp += 15;
+                this.maxMp += 20;
+                this.atk += 6;
+                this.def += 1;
+            } else { // Archer
+                this.maxHp += 18;
+                this.maxMp += 10;
+                this.atk += 5;
+                this.def += 2;
+            }
+
+            // Full heal on level up
+            this.hp = this.maxHp;
+            this.mp = this.maxMp;
+
+            System.out.println("\n=========================================");
+            System.out.println(" LEVEL UP! You reached Level " + this.level + "!");
+            System.out.println(" Maximum HP and MP have increased!");
+            System.out.println(" Base ATK and DEF have grown stronger!");
+            System.out.println("=========================================");
+        }
+    }
+
+    public void applyInnatePassive() {
+        if (hp <= 0) return;
+        if (playerClass.equals("Warrior")) {
+            setHp(hp + 4);
+            System.out.println("[Innate Passive] Warrior recovers 4 HP.");
+        } else if (playerClass.equals("Magician")) {
+            setMp(mp + 5);
+            System.out.println("[Innate Passive] Magician recovers 5 MP.");
+        }
+    }
+
+    public void rest() {
+        int healHp = (int) (maxHp * 0.30);
+        int healMp = (int) (maxMp * 0.30);
+        setHp(hp + healHp);
+        setMp(mp + healMp);
+        System.out.println("You rest. Restored " + healHp + " HP and " + healMp + " MP.");
+    }
+
+    @Override
+    public int executeAttack(int choice, Entity target) {
+        int damage = 0;
+        if (choice == 1) {
+            System.out.println(name + " uses Basic Attack!");
+            damage = calculateDamageValue(atk, target.getDef(), critChance);
+        } else if (choice == 2) {
+            if (mp >= skillCost) {
+                mp -= skillCost;
+                System.out.println(name + " casts " + skillName + "!");
+                damage = calculateDamageValue((int)(atk * 1.6), target.getDef(), critChance);
+            } else {
+                System.out.println("Not enough MP! Desperation strike hits poorly.");
+                damage = calculateDamageValue((int)(atk * 0.5), target.getDef(), 0);
+            }
+        } else if (choice == 3) {
+            if (mp >= ultCost) {
+                mp -= ultCost;
+                System.out.println(name + " unleashes Ultimate: " + ultName + "!");
+                damage = calculateDamageValue((int)(atk * 2.5), target.getDef(), critChance + 0.15);
+            } else {
+                System.out.println("Not enough MP! The ultimate fizzled out.");
+            }
+        }
+        return damage;
+    }
+
+    // Getters for Level metrics
+    public int getLevel() { return level; }
+    public int getExp() { return exp; }
+    public int getNextLevelExp() { return nextLevelExp; }
+
+    public String getPlayerClass() { return playerClass; }
+    public String getSkillName() { return skillName; }
+    public String getUltName() { return ultName; }
+    public int getSkillCost() { return skillCost; }
+    public int getUltCost() { return ultCost; }
+}
+
+class Enemy extends Entity {
+    private String specialSkill;
+
+    public Enemy(int type) {
+        super("Unknown Monster", 50, 0, 10, 2, 0.05, 0.02);
+        setupMonster(type);
+    }
+
+    private void setupMonster(int type) {
+        if (type == 0) {
+            this.name = "Goblin"; this.maxHp = 40; this.hp = 40; this.atk = 10; this.def = 2; this.specialSkill = "Dagger Slash";
+        } else if (type == 1) {
+            this.name = "Orc"; this.maxHp = 75; this.hp = 75; this.atk = 16; this.def = 6; this.specialSkill = "Club Smash";
+        } else if (type == 2) {
+            this.name = "Baby Dragon"; this.maxHp = 110; this.hp = 110; this.atk = 22; this.def = 10; this.specialSkill = "Fire Breath";
+        } else if (type == 3) {
+            this.name = "Niki Minaj the Black Dragon (BOSS)";
+            this.maxHp = 250; this.hp = 250;
+            this.atk = 35; this.def = 18;
+            this.critChance = 0.15; this.dodgeChance = 0.05;
+            this.specialSkill = "My Anaconda Breath";
+        } else {
+            this.name = "Frost Wyrm, Herald of Winter (BOSS)";
+            this.maxHp = 320; this.hp = 320;
+            this.atk = 40; this.def = 22;
+            this.critChance = 0.20; this.dodgeChance = 0.08;
+            this.specialSkill = "Absolute Zero Breath";
+        }
+    }
+
+    @Override
+    public int executeAttack(int choice, Entity target) {
+        int damage;
+        // Boss rolls
+        double specialMoveOdds = this.name.contains("BOSS") ? 0.25 : 0.25;
+
+        if (random.nextDouble() < specialMoveOdds) {
+            System.out.println("\n" + name + " releases its ultimate move: " + specialSkill + "!");
+            damage = calculateDamageValue((int)(atk * 1.5), target.getDef(), critChance);
+        } else {
+            System.out.println(name + " lunges forward with a crushing basic strike.");
+            damage = calculateDamageValue(atk, target.getDef(), critChance);
+        }
+        return damage;
+    }
+}
+
+class GameEngine {
+    private Scanner scanner = new Scanner(System.in);
+    private Random random = new Random();
+    private Player player;
+
+    private int posX = 0;
+    private int posY = 0;
+
+    private int totalDefeated = 0;
+    private int goblinDefeated = 0;
+    private int orcDefeated = 0;
+    private int dragonDefeated = 0;
+    private int bossDefeated = 0;
+    private int frostWyrmDefeated = 0;
+
+    public void start() {
+        displayMetadata();
+        setupPlayer();
+        explorationLoop();
+    }
+
+    private void displayMetadata() {
+        System.out.println("==================================================");
+        System.out.println("DEVELOPED BY: HAKPIN STUDIOS");
+        System.out.println("MEMBERS:");
+        System.out.println("* Phil Galido (Lead Dev), Phil Galido (Game Designer)");
+        System.out.println("* Phil Galido (Graphics Design), Phil Galido (Sound Engineer)");
+        System.out.println("* Phil Galido (Producer), Phil Galido (Game Tester)");
+        System.out.println("* Phil Galido (Front-End Developer), Phil Galido (Back-End Developer)");
+        System.out.println("* Phil Galido (Spiritual/Motivational Support), Phil Galido (Canton Server)");
+        System.out.println("==================================================");
+        System.out.println("GAME TITLE : MEMA-OOP RPG");
+        System.out.println("==================================================\n");
+    }
+
+    private void setupPlayer() {
+        System.out.print("Enter player name: ");
+        String name = scanner.nextLine().trim();
+        if (name.isEmpty()) name = "Hero";
+
+        System.out.println("\nSelect Your Class:");
+        System.out.println("1. Warrior\n2. Magician\n3. Archer");
+        int choice = getValidInput(1, 3);
+
+        player = new Player(name, choice);
+    }
+
+    private void explorationLoop() {
+        String[] randomLines = {
+            "You're chilling inside as you hear whispers... you turned around and discover that it was just a group of marites.",
+            "You find a mysterious shiny object on the ground! ...Never mind, it's just a discarded candy wrapper.",
+            "You saw a moving silhouette ... of what seemingly a big fat bald man that accidentally tripped and fell.",
+            "You scan around the foggy mist. You realized it was just smoke from a group of irreg students cutting classes.",
+            "No enemies appear. You spend the next few minutes overthinking how you will pass this subject."
+        };
+
+        while (true) {
+            System.out.println("\n--- EXPLORATION MODE ---");
+            System.out.println("Current Coordinates: (" + posX + ", " + posY + ")");
+            System.out.println("1. Walk (Move Around)");
+            System.out.println("2. Check Stats & Trophies");
+            System.out.println("3. Exit Game");
+            int choice = getValidInput(1, 3);
+
+            if (choice == 3) break;
+
+            if (choice == 1) {
+                handleMovement();
+                checkSpecialLocations(randomLines);
+            } else if (choice == 2) {
+                displayStats();
+            }
+        }
+    }
+
+    private void handleMovement() {
+        System.out.println("\nChoose direction to walk:");
+        System.out.println("1. North (Y++) | 2. South (Y--) | 3. East (X++) | 4. West (X--)");
+        int direction = getValidInput(1, 4);
+
+        int nextX = posX;
+        int nextY = posY;
+
+        if (direction == 1) nextY++;
+        else if (direction == 2) nextY--;
+        else if (direction == 3) nextX++;
+        else nextX--;
+
+        // block
+        if (nextX == 1 && nextY == 2) {
+            System.out.println("\n[MAP BLOCKAGE] A wild Snorlax is sleeping soundly here! It blocks the entire path.");
+            System.out.println("You try to push it, but you realize you do not have a Poke Flute. Movement canceled.");
+            System.out.println("You remain at your current coordinates: (" + posX + ", " + posY + ")");
+            return;
+        }
+
+        if (nextX == 2 && nextY == 1) {
+            System.out.println("\n[MAP BLOCKAGE] Manong Guard appeared.");
+            System.out.println("He asked for your ID, but you're so stubborn you never really care bringing it. Movement canceled.");
+            System.out.println("You remain at your current coordinates: (" + posX + ", " + posY + ")");
+            return;
+        }
+
+        posX = nextX;
+        posY = nextY;
+        System.out.println("Walking along the path... You arrived at (" + posX + ", " + posY + ").");
+    }
+
+    private void checkSpecialLocations(String[] randomLines) {
+        // 1. Dragon Boss Area
+        if ((posX == 3 && posY == 3) || (posX == -3 && posY == -3)) {
+            System.out.println("\n[BOSS ZONE] The earth rumbles as volcanic smoke fills the room...");
+            System.out.println("You have entered the Dragon's Lair!");
+            battleMode(3); // Passes integer 3 to spawn the real Dragon Boss!
+            return;
+        }
+
+        // 1b. Frost Wyrm Boss Area
+        if ((posX == 5 && posY == 5) || (posX == -5 && posY == -5)) {
+            System.out.println("\n[BOSS ZONE] A biting, unnatural chill fills the air as ice crawls up the walls...");
+            System.out.println("You have entered the Frozen Cavern!");
+            battleMode(4); // Passes integer 4 to spawn the Frost Wyrm Boss!
+            return;
+        }
+
+        // 2. Healing Canal Area
+        if ((posX == -2 && posY == -2) || (posX == 2 && posY == 2)) {
+            System.out.println("\n[HEALING CANAL] You discovered a dirty, nasty canal filled with garbage and black mucus.");
+            System.out.println("You happily drink the water. Your HP and MP are fully restored!");
+            player.setHp(player.getMaxHp());
+            player.setMp(player.getMaxMp());
+            return;
+        }
+
+        // 3. Normal Random Spawns (50% Chance)
+        if (random.nextDouble() < 0.50) {
+            battleMode(-1);
+        } else {
+            String line = randomLines[random.nextInt(randomLines.length)];
+            System.out.println(line);
+        }
+    }
+
+    private void battleMode(int forcedType) {
+        int enemyType = (forcedType == -1) ? random.nextInt(3) : forcedType;
+        Enemy enemy = new Enemy(enemyType);
+
+        if (forcedType >= 3) {
+            System.out.println("\nWARNING: BOSS BATTLE ENGAGED!");
+            System.out.println("Prepare yourself, " + player.getName() + "! You face " + enemy.getName() + "!");
+        } else {
+            System.out.println("\nA wild " + enemy.getName() + " appeared!");
+        }
+
+        while (player.getHp() > 0 && enemy.getHp() > 0) {
+            System.out.println("\n" + player.getName() + " HP: " + player.getHp() + "/" + player.getMaxHp() + " | MP: " + player.getMp() + "/" + player.getMaxMp());
+            System.out.println(enemy.getName() + " HP: " + enemy.getHp() + "/" + enemy.getMaxHp());
+            System.out.println("1. Fight\n2. Run");
+
+            if (getValidInput(1, 2) == 2) {
+                if (forcedType >= 3) {
+                    System.out.println("Bading yarn? You cannot run away from a Boss Battle! Fight or die!");
+                } else if (random.nextBoolean()) {
+                    System.out.println("Escaped successfully!");
+                    return;
+                } else {
+                    System.out.println("Escape failed! The enemy blocks your exit path.");
+                    performTurn(enemy, player, 0);
+                    player.applyInnatePassive();
+                }
+            } else {
+                // Player Combat Turn
+                System.out.println("1. Basic Attack\n2. " + player.getSkillName() + " (" + player.getSkillCost() + " MP)\n3. " + player.getUltName() + " (" + player.getUltCost() + " MP)");
+                int attackChoice = getValidInput(1, 3);
+                performTurn(player, enemy, attackChoice);
+
+                if (enemy.getHp() <= 0) {
+                    break;
+                }
+
+                // Monster Turn
+                performTurn(enemy, player, 0);
+                player.applyInnatePassive();
+            }
+        }
+
+        handleCombatResult(enemy);
+    }
+
+    private void performTurn(Entity attacker, Entity defender, int choice) {
+        if (attacker.getHp() <= 0) return;
+
+        if (defender.tryDodge()) {
+            System.out.println(defender.getName() + " skillfully dodged the attack!");
+            return;
+        }
+
+        int damageDealt = attacker.executeAttack(choice, defender);
+        defender.setHp(defender.getHp() - damageDealt);
+        System.out.println(attacker.getName() + " dealt " + damageDealt + " damage to " + defender.getName() + ".");
+    }
+
+    private void handleCombatResult(Enemy enemy) {
+        if (player.getHp() <= 0) {
+            System.out.println("You died. Game Over.");
+            System.exit(0);
+        } else {
+            System.out.println("You defeated the " + enemy.getName() + "!");
+            totalDefeated++;
+
+            int expReward = 0;
+            if (enemy.getName().equals("Goblin")) {
+                goblinDefeated++;
+                expReward = 15;
+            } else if (enemy.getName().equals("Orc")) {
+                orcDefeated++;
+                expReward = 30;
+            } else if (enemy.getName().equals("Baby Dragon")) {
+                dragonDefeated++;
+                expReward = 50;
+            } else if (enemy.getName().contains("Frost Wyrm")) {
+                frostWyrmDefeated++;
+                expReward = 260; // Even greater yield for the harder Frost Wyrm
+            } else {
+                bossDefeated++;
+                expReward = 200; // Massive yield for executing the true Dragon Boss
+            }
+
+            // Apply rewarded experience back to player instance
+            player.gainExp(expReward);
+        }
+    }
+
+    private void displayStats() {
+        System.out.println("\n=========================================");
+        System.out.println("               HERO STATS                ");
+        System.out.println("=========================================");
+        System.out.println(" Name        : " + player.getName());
+        System.out.println(" Class       : " + player.getPlayerClass());
+        System.out.println(" Level       : " + player.getLevel());
+        System.out.println(" EXP         : " + player.getExp() + " / " + player.getNextLevelExp());
+        System.out.println(" Coordinates : (" + posX + ", " + posY + ")");
+        System.out.println(" HP          : " + player.getHp() + " / " + player.getMaxHp());
+        System.out.println(" MP          : " + player.getMp() + " / " + player.getMaxMp());
+       
